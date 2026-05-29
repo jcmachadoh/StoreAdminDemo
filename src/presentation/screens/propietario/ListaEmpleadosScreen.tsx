@@ -1,15 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, View, Text, SectionList, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, SectionList, RefreshControl, StyleSheet } from 'react-native';
 import { ObtenerEmpleadosUseCase } from '../../../application/useCases/ObtenerEmpleadosUseCase';
 import { GestionarSucursalesUseCase } from '../../../application/useCases/GestionarSucursalesUseCase';
-import { FullScreenLoader } from '../../components/shared/FullScreenLoader';
 import { useUIStore } from '../../store/useUIStore';
+import { useAppTheme } from '../../hooks/useAppTheme';
+import {
+  ScreenLayout,
+  Header,
+  Card,
+  Badge,
+  FAB,
+  FullScreenLoader,
+  Icon,
+} from '../../components/shared';
 
 export const ListaEmpleadosScreen = ({ navigation }: any) => {
   const [secciones, setSecciones] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { showAlert } = useUIStore();
+  const { colors, spacing } = useAppTheme();
 
   const cargarDatos = async (isRefresh = false) => {
     if (isRefresh) setIsRefreshing(true);
@@ -17,25 +27,25 @@ export const ListaEmpleadosScreen = ({ navigation }: any) => {
 
     const empleadosUseCase = new ObtenerEmpleadosUseCase();
     const sucursalesUseCase = new GestionarSucursalesUseCase();
-
-    // Descargamos empleados y sucursales al mismo tiempo para cruzarlos
     const [resEmpleados, resSucursales] = await Promise.all([
       empleadosUseCase.ejecutar(),
-      sucursalesUseCase.obtenerSucursales()
+      sucursalesUseCase.obtenerSucursales(),
     ]);
 
     if (resEmpleados.exito && resSucursales.exito) {
       const empleados = resEmpleados.data;
       const sucursales = resSucursales.data;
 
-      // Agrupamos los empleados por sucursal
-      const datosAgrupados = sucursales.map(suc => ({
-        title: suc.nombre,
-        data: empleados.filter((emp: any) => emp.sucursal === suc.id)
-      })).filter(grupo => grupo.data.length > 0); // Ocultamos sucursales vacías
+      const datosAgrupados = sucursales
+        .map(suc => ({
+          title: suc.nombre,
+          data: empleados.filter((emp: any) => emp.sucursal === suc.id),
+        }))
+        .filter(grupo => grupo.data.length > 0);
 
-      // Añadimos un grupo para empleados sin sucursal asignada (si los hay)
-      const sinSucursal = empleados.filter((emp: any) => !sucursales.find(s => s.id === emp.sucursal));
+      const sinSucursal = empleados.filter(
+        (emp: any) => !sucursales.find(s => s.id === emp.sucursal),
+      );
       if (sinSucursal.length > 0) {
         datosAgrupados.push({ title: 'Sin Sucursal Asignada', data: sinSucursal });
       }
@@ -52,80 +62,86 @@ export const ListaEmpleadosScreen = ({ navigation }: any) => {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => cargarDatos());
     return unsubscribe;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation]);
 
   const renderEmpleado = ({ item }: any) => (
-    <View style={styles.card}>
+    <Card style={[styles.card, { padding: spacing.lg }]} elevated={false}>
       <View style={styles.cardHeader}>
-        <Text style={styles.nombre}>{item.nombre}</Text>
-        <View style={[styles.badge, item.activo ? styles.badgeActive : styles.badgeInactive]}>
-          <Text style={[styles.badgeText, item.activo ? styles.badgeTextActive : styles.badgeTextInactive]}>
-            {item.activo ? 'Activo' : 'Inactivo'}
-          </Text>
-        </View>
+        <Text style={[styles.nombre, { color: colors.text }]}>{item.nombre}</Text>
+        <Badge
+          label={item.activo ? 'Activo' : 'Inactivo'}
+          variant={item.activo ? 'success' : 'warning'}
+        />
       </View>
-      <Text style={styles.detalle}>📧 {item.email}</Text>
-      <Text style={styles.detalle}>🆔 ID: {item.id}</Text>
-    </View>
+      <View style={styles.iconRow}>
+        <Icon name="email-outline" size={14} color={colors.textSecondary} />
+        <Text style={[styles.detalle, { color: colors.textSecondary }]}> {item.email}</Text>
+      </View>
+      <View style={styles.iconRow}>
+        <Icon name="card-account-details-outline" size={14} color={colors.textTertiary} />
+        <Text style={[styles.detalle, { color: colors.textTertiary }]}> ID: {item.id}</Text>
+      </View>
+    </Card>
   );
 
   const renderSectionHeader = ({ section: { title } }: any) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
+      <Text style={[styles.sectionTitle, { color: colors.primary }]}>{title}</Text>
     </View>
   );
 
-  if (isLoading && !isRefreshing) return <FullScreenLoader mensaje="Organizando la plantilla de empleados..." />;
+  if (isLoading && !isRefreshing) {
+    return <FullScreenLoader mensaje="Organizando la plantilla de empleados..." />;
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>{'<'} Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Empleados</Text>
-        <View style={{ width: 60 }} />
-      </View>
+    <ScreenLayout>
+      <Header title="Empleados" onBack={() => navigation.goBack()} />
 
       <SectionList
         sections={secciones}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         renderItem={renderEmpleado}
         renderSectionHeader={renderSectionHeader}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.emptyText}>No hay empleados registrados en la empresa.</Text>}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => cargarDatos(true)} colors={['#0366d6']} />}
-        stickySectionHeadersEnabled={true}
+        contentContainerStyle={[styles.list, { paddingHorizontal: spacing.lg }]}
+        ListEmptyComponent={
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+            No hay empleados registrados.
+          </Text>
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => cargarDatos(true)}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+        stickySectionHeadersEnabled
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('FormularioEmpleadoScreen')}>
-        <Text style={styles.fabIcon}>+</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+      <FAB
+        onPress={() => navigation.navigate('FormularioEmpleadoScreen')}
+        accessibilityLabel="Agregar nuevo empleado"
+      />
+    </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f6f8' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  backBtn: { padding: 5 },
-  backBtnText: { color: '#0366d6', fontSize: 16, fontWeight: '600' },
-  list: { paddingHorizontal: 15, paddingBottom: 80 },
-  sectionHeader: { backgroundColor: '#f4f6f8', paddingVertical: 10, marginTop: 10 },
-  sectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#0366d6', textTransform: 'uppercase' },
-  card: { backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, elevation: 2, borderWidth: 1, borderColor: '#e1e4e8' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  nombre: { fontSize: 16, fontWeight: 'bold', color: '#333', flex: 1 },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  badgeActive: { backgroundColor: '#d4edda' },
-  badgeInactive: { backgroundColor: '#fff3cd' },
-  badgeText: { fontSize: 11, fontWeight: 'bold' },
-  badgeTextActive: { color: '#155724' },
-  badgeTextInactive: { color: '#856404' },
-  detalle: { fontSize: 13, color: '#666', marginTop: 3 },
-  emptyText: { textAlign: 'center', marginTop: 30, color: '#888', fontSize: 16 },
-  fab: { position: 'absolute', bottom: 20, right: 20, backgroundColor: '#0366d6', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', shadowColor: '#0366d6', shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
-  fabIcon: { color: '#fff', fontSize: 32, fontWeight: '300', lineHeight: 34 }
+  list: { paddingBottom: 80 },
+  sectionHeader: { paddingVertical: 10, marginTop: 10 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  card: { marginBottom: 10, borderWidth: 1 },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  nombre: { fontSize: 16, fontWeight: '600', flex: 1 },
+  detalle: { fontSize: 13, marginTop: 3 },
+  iconRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
+  emptyText: { textAlign: 'center', marginTop: 30, fontSize: 16 },
 });

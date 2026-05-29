@@ -1,13 +1,16 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, View, Text, FlatList, TouchableOpacity, StyleSheet, Image, TextInput, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image } from 'react-native';
 import { useInventarioStore } from '../../store/useInventarioStore';
+import { useAppTheme } from '../../hooks/useAppTheme';
+import { ScreenLayout, Header, Badge, FAB, SearchBar } from '../../components/shared';
+import { StyleSheet } from 'react-native';
 
 export const MaestroArticulosScreen = ({ navigation }: any) => {
   const { productos, categorias, cargarCachLocal } = useInventarioStore();
-  
-  // Estados para los filtros
+  const { colors, spacing, radii, shadows } = useAppTheme();
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>(''); // '' significa "Todas"
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('');
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -16,121 +19,194 @@ export const MaestroArticulosScreen = ({ navigation }: any) => {
     return unsubscribe;
   }, [navigation, cargarCachLocal]);
 
-  // Lógica de filtrado en tiempo real (Instantáneo desde memoria)
-  const productosFiltrados = productos.filter((p) => {
-    const coincideNombre = p.nombre.toLowerCase().includes(searchQuery.toLowerCase());
-    const coincideCategoria = categoriaSeleccionada ? p.categoria_id === categoriaSeleccionada : true;
+  const productosFiltrados = productos.filter(p => {
+    const coincideNombre = p.nombre
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const coincideCategoria = categoriaSeleccionada
+      ? p.categoria_id === categoriaSeleccionada
+      : true;
     return coincideNombre && coincideCategoria;
   });
 
   const renderProducto = ({ item }: any) => {
     const categoria = categorias.find(c => c.id === item.categoria_id);
     return (
-      // AHORA LA TARJETA ES CLICABLE Y NAVEGA PASANDO EL PRODUCTO COMO PARÁMETRO
-      <TouchableOpacity 
-        style={styles.card} 
-        onPress={() => navigation.navigate('FormularioProductoScreen', { producto: item })}
+      <TouchableOpacity
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.borderLight,
+            borderRadius: radii.md,
+            ...shadows.sm,
+          },
+        ]}
+        onPress={() =>
+          navigation.navigate('FormularioProductoScreen', { producto: item })
+        }
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Editar ${item.nombre}`}
       >
         {item.imagen ? (
           <Image source={{ uri: item.imagen }} style={styles.imagen} />
         ) : (
-          <View style={styles.imagenPlaceholder}><Text style={styles.placeholderText}>No Img</Text></View>
+          <View
+            style={[
+              styles.imagenPlaceholder,
+              { backgroundColor: colors.surfaceInset },
+            ]}
+          >
+            <Text style={[styles.placeholderText, { color: colors.textMuted }]}>
+              No Img
+            </Text>
+          </View>
         )}
         <View style={styles.info}>
-          <Text style={styles.nombre}>{item.nombre}</Text>
-          <Text style={styles.sku}>SKU: {item.sku.substring(0, 13)}...</Text>
-          <Text style={styles.categoriaBadge}>{categoria?.nombre || 'Sin Categoría'}</Text>
+          <Text style={[styles.nombre, { color: colors.text }]}>{item.nombre}</Text>
+          <Text style={[styles.sku, { color: colors.textTertiary }]}>
+            SKU: {item.sku ? item.sku.substring(0, 10) : 'SIN-SKU'}...
+          </Text>
+          <Badge
+            label={categoria?.nombre || 'Sin Categoría'}
+            variant="info"
+            style={{ marginTop: 4 }}
+          />
         </View>
-        <Text style={styles.precio}>${item.precio.toFixed(2)}</Text>
+        <Text style={[styles.precio, { color: colors.success }]}>
+          ${item.precio.toFixed(2)}
+        </Text>
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>{'<'} Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Catálogo Maestro</Text>
-        <View style={{ width: 60 }} />
-      </View>
+    <ScreenLayout>
+      <Header title="Catálogo Maestro" onBack={() => navigation.goBack()} />
 
-      {/* BUSCADOR */}
-      <View style={styles.searchContainer}>
-        <TextInput 
-          style={styles.searchInput} 
-          placeholder="🔍 Buscar producto por nombre..." 
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
-
-      {/* FILTRO POR CATEGORÍAS */}
-      <View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          <TouchableOpacity 
-            style={[styles.filterChip, categoriaSeleccionada === '' && styles.filterChipActive]}
-            onPress={() => setCategoriaSeleccionada('')}
-          >
-            <Text style={[styles.filterText, categoriaSeleccionada === '' && styles.filterTextActive]}>Todas</Text>
-          </TouchableOpacity>
-          
-          {categorias.map(cat => (
-            <TouchableOpacity 
-              key={cat.id} 
-              style={[styles.filterChip, categoriaSeleccionada === cat.id && styles.filterChipActive]}
-              onPress={() => setCategoriaSeleccionada(cat.id)}
-            >
-              <Text style={[styles.filterText, categoriaSeleccionada === cat.id && styles.filterTextActive]}>{cat.nombre}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* LISTA */}
-      <FlatList
-        data={productosFiltrados}
-        keyExtractor={(item) => item.sku}
-        renderItem={renderProducto}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.emptyText}>No se encontraron productos.</Text>}
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Buscar producto por nombre..."
       />
 
-      {/* BOTÓN FLOTANTE */}
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('FormularioProductoScreen')}>
-        <Text style={styles.fabIcon}>+</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+      <View style={[styles.filterRow, { backgroundColor: colors.surface, borderBottomColor: colors.borderLight }]}>
+        <TouchableOpacity
+          style={[
+            styles.chip,
+            {
+              backgroundColor:
+                categoriaSeleccionada === ''
+                  ? colors.primary
+                  : colors.surfaceInset,
+              borderColor:
+                categoriaSeleccionada === ''
+                  ? colors.primary
+                  : colors.border,
+              borderRadius: radii.xl,
+            },
+          ]}
+          onPress={() => setCategoriaSeleccionada('')}
+          accessibilityRole="button"
+          accessibilityLabel="Todas las categorías"
+        >
+          <Text
+            style={{
+              color:
+                categoriaSeleccionada === '' ? '#ffffff' : colors.textSecondary,
+              fontWeight: '600',
+              fontSize: 13,
+            }}
+          >
+            Todas
+          </Text>
+        </TouchableOpacity>
+        {categorias.map(cat => (
+          <TouchableOpacity
+            key={cat.id}
+            style={[
+              styles.chip,
+              {
+                backgroundColor:
+                  categoriaSeleccionada === cat.id
+                    ? colors.primary
+                    : colors.surfaceInset,
+                borderColor:
+                  categoriaSeleccionada === cat.id
+                    ? colors.primary
+                    : colors.border,
+                borderRadius: radii.xl,
+              },
+            ]}
+            onPress={() => setCategoriaSeleccionada(cat.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`Categoría ${cat.nombre}`}
+          >
+            <Text
+              style={{
+                color:
+                  categoriaSeleccionada === cat.id
+                    ? '#ffffff'
+                    : colors.textSecondary,
+                fontWeight: '600',
+                fontSize: 13,
+              }}
+            >
+              {cat.nombre}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <FlatList
+        data={productosFiltrados}
+        keyExtractor={(item, index) => item.sku ? item.sku.toString() : `prod-sin-sku-${index}`}
+        renderItem={renderProducto}
+        contentContainerStyle={[styles.list, { padding: spacing.lg }]}
+        ListEmptyComponent={
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+            No se encontraron productos.
+          </Text>
+        }
+      />
+
+      <FAB
+        onPress={() => navigation.navigate('FormularioProductoScreen')}
+        accessibilityLabel="Agregar nuevo producto"
+      />
+    </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f6f8' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  backBtn: { padding: 5 },
-  backBtnText: { color: '#0366d6', fontSize: 16, fontWeight: '600' },
-  searchContainer: { paddingHorizontal: 15, paddingTop: 15, paddingBottom: 10, backgroundColor: '#fff' },
-  searchInput: { backgroundColor: '#f1f3f5', padding: 12, borderRadius: 8, fontSize: 16, color: '#333' },
-  filterScroll: { paddingHorizontal: 15, paddingBottom: 15, backgroundColor: '#fff' },
-  filterChip: { backgroundColor: '#f1f3f5', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: '#e1e4e8' },
-  filterChipActive: { backgroundColor: '#0366d6', borderColor: '#0366d6' },
-  filterText: { color: '#555', fontWeight: '500' },
-  filterTextActive: { color: '#fff' },
-  list: { padding: 15, paddingBottom: 80 },
-  card: { flexDirection: 'row', backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 10, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  chip: { paddingHorizontal: 14, paddingVertical: 7, marginRight: 8, borderWidth: 1 },
+  list: { paddingBottom: 80 },
+  card: {
+    flexDirection: 'row',
+    padding: 14,
+    marginBottom: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
   imagen: { width: 50, height: 50, borderRadius: 8 },
-  imagenPlaceholder: { width: 50, height: 50, borderRadius: 8, backgroundColor: '#e1e4e8', justifyContent: 'center', alignItems: 'center' },
-  placeholderText: { fontSize: 10, color: '#999' },
-  info: { flex: 1, marginLeft: 15 },
-  nombre: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  sku: { fontSize: 11, color: '#888', marginTop: 2 },
-  categoriaBadge: { alignSelf: 'flex-start', backgroundColor: '#eef3f9', color: '#0366d6', fontSize: 10, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4, overflow: 'hidden' },
-  precio: { fontSize: 18, fontWeight: 'bold', color: '#28a745' },
-  emptyText: { textAlign: 'center', marginTop: 30, color: '#888', fontSize: 16 },
-  fab: { position: 'absolute', bottom: 20, right: 20, backgroundColor: '#0366d6', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', shadowColor: '#0366d6', shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
-  fabIcon: { color: '#fff', fontSize: 32, fontWeight: '300', lineHeight: 34 }
+  imagenPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: { fontSize: 10 },
+  info: { flex: 1, marginLeft: 14 },
+  nombre: { fontSize: 16, fontWeight: '600' },
+  sku: { fontSize: 11, marginTop: 2 },
+  precio: { fontSize: 18, fontWeight: '700' },
+  emptyText: { textAlign: 'center', marginTop: 30, fontSize: 16 },
 });

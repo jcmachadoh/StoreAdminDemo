@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Alert, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivarCuentaUseCase } from '../../../application/useCases/ActivarCuentaUseCase';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useAppTheme } from '../../hooks/useAppTheme';
+import { Button } from '../../components/shared';
 
 export const ActivationScreen = ({ navigation }: any) => {
+  const { colors, spacing, radii, shadows } = useAppTheme();
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +33,8 @@ export const ActivationScreen = ({ navigation }: any) => {
     if (resultado.exito && resultado.empleadoId) {
       Alert.alert(
         '¡Cuenta Activada!',
-        resultado.mensaje + '\n\n¿Deseas configurar tu huella dactilar para entrar más rápido la próxima vez?',
+        resultado.mensaje +
+          '\n\n¿Deseas configurar tu huella dactilar para entrar más rápido la próxima vez?',
         [
           {
             text: 'Más tarde',
@@ -41,14 +46,13 @@ export const ActivationScreen = ({ navigation }: any) => {
             onPress: async () => {
               const vinculado = await vincularHuella(resultado.empleadoId!, token);
               if (vinculado) {
-                // Si vinculó la huella con éxito, lo logueamos directamente
                 await loginConHuella();
               } else {
                 navigation.replace('LoginScreen');
               }
             },
           },
-        ]
+        ],
       );
     } else {
       Alert.alert('Activación Fallida', resultado.mensaje);
@@ -56,62 +60,99 @@ export const ActivationScreen = ({ navigation }: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Ecosistema POS</Text>
-        <Text style={styles.subtitle}>Activación de Cuenta</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surface,
+            borderRadius: radii.lg,
+            ...shadows.lg,
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: colors.text }]}>Ecosistema POS</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          Activación de Cuenta
+        </Text>
 
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.surfaceInset,
+              borderColor: colors.border,
+              color: colors.text,
+              borderRadius: radii.sm,
+            },
+          ]}
           placeholder="Pega aquí tu Token de GitHub"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
           value={token}
           onChangeText={setToken}
           autoCapitalize="none"
           secureTextEntry
+          accessibilityLabel="Token de GitHub"
         />
 
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.surfaceInset,
+              borderColor: colors.border,
+              color: colors.text,
+              borderRadius: radii.sm,
+            },
+          ]}
           placeholder="Crea un Nombre de Usuario"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
+          accessibilityLabel="Nombre de usuario"
         />
 
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.surfaceInset,
+              borderColor: colors.border,
+              color: colors.text,
+              borderRadius: radii.sm,
+            },
+          ]}
           placeholder="Crea una Contraseña Segura"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textMuted}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          accessibilityLabel="Contraseña"
         />
 
-        <TouchableOpacity 
-          style={[styles.button, isLoading && styles.buttonDisabled]} 
-          onPress={handleActivacion} 
+        <Button
+          title="Activar mi cuenta"
+          onPress={handleActivacion}
           disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Activar mi cuenta</Text>
-          )}
-        </TouchableOpacity>
+          loading={isLoading}
+          style={{ marginTop: spacing.sm }}
+          accessibilityLabel="Activar cuenta"
+        />
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f5', justifyContent: 'center', padding: 20 },
-  card: { backgroundColor: '#fff', padding: 25, borderRadius: 15, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#1a1a1a', textAlign: 'center', marginBottom: 5 },
-  subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 25 },
-  input: { backgroundColor: '#f8f9fa', borderWidth: 1, borderColor: '#e1e4e8', borderRadius: 8, padding: 15, marginBottom: 15, fontSize: 16, color: '#333' },
-  button: { backgroundColor: '#0366d6', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  buttonDisabled: { backgroundColor: '#94bce8' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  container: { flex: 1, justifyContent: 'center', padding: 20 },
+  card: { padding: 24 },
+  title: { fontSize: 26, fontWeight: '700', textAlign: 'center', marginBottom: 4 },
+  subtitle: { fontSize: 16, textAlign: 'center', marginBottom: 24 },
+  input: {
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 14,
+    fontSize: 16,
+  },
 });

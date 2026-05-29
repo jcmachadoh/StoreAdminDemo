@@ -22,14 +22,14 @@ export const useInventarioStore = create<InventarioState>((set) => ({
     let rols = localDb.obtenerRoles();
 
     // 2. FILTRO PURIFICADOR: Si el JSON vino anidado, lo extraemos a la fuerza
-    if (prods && typeof prods === 'object' && prods.productos) {
-      prods = prods.productos;
+    if (prods && typeof prods === 'object' && (prods as any).productos) {
+      prods = (prods as any).productos;
     }
-    if (cats && typeof cats === 'object' && cats.categorias) {
-      cats = cats.categorias;
+    if (cats && typeof cats === 'object' && (cats as any).categorias) {
+      cats = (cats as any).categorias;
     }
-    if (rols && typeof rols === 'object' && rols.roles) {
-      rols = rols.roles;
+    if (rols && typeof rols === 'object' && (rols as any).roles) {
+      rols = (rols as any).roles;
     }
 
     // 3. Garantizamos que SIEMPRE sean Arreglos (Arrays) para que el .filter() nunca explote

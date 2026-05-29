@@ -64,6 +64,23 @@ export class LocalStorageAdapter {
     this.storage.set('ajustes_stock_pendientes', JSON.stringify(filtrados));
   }
 
+  // --- PREFERENCIAS DE USUARIO (TEMA E IDIOMA) ---
+  // Busca tus métodos de preferencias y sustitúyelos/amplíalos así:
+  guardarPreferencias(tema: 'light' | 'dark', idioma: 'es' | 'en', syncMode: 'manual' | 'auto' = 'manual', syncDelay: number = 5): void {
+    this.storage.set('app_tema', tema);
+    this.storage.set('app_idioma', idioma);
+    this.storage.set('app_sync_mode', syncMode);
+    this.storage.set('app_sync_delay', syncDelay);
+  }
+
+  obtenerPreferencias(): { tema: 'light' | 'dark'; idioma: 'es' | 'en'; syncMode: 'manual' | 'auto'; syncDelay: number } {
+    const tema = (this.storage.getString('app_tema') as 'light' | 'dark') || 'light';
+    const idioma = (this.storage.getString('app_idioma') as 'es' | 'en') || 'es';
+    const syncMode = (this.storage.getString('app_sync_mode') as 'manual' | 'auto') || 'manual';
+    const syncDelay = this.storage.getNumber('app_sync_delay') ?? 5; // 5 segundos por defecto
+    return { tema, idioma, syncMode, syncDelay };
+  }
+
   // --- COLA DE SINCRONIZACIÓN OFFLINE (Para RNF04 / RF41) ---
   // Aquí guardaremos temporalmente las operaciones hechas sin internet
   agregarOperacionPendiente(operacion: { tipo: string; payload: any }): void {
@@ -175,6 +192,46 @@ export class LocalStorageAdapter {
     return res ? JSON.parse(res) : [];
   }
 
+  // --- COLA DE SUCURSALES PENDIENTES ---
+  guardarSucursalPendiente(sucursal: any): void {
+    const pendientes = this.obtenerSucursalesPendientes();
+    // Reemplazamos si ya existe (para soportar ediciones offline) o agregamos
+    const index = pendientes.findIndex((s: any) => s.id === sucursal.id);
+    if (index !== -1) pendientes[index] = sucursal;
+    else pendientes.push(sucursal);
+    this.storage.set('sucursales_pendientes', JSON.stringify(pendientes));
+  }
+
+  obtenerSucursalesPendientes(): any[] {
+    const res = this.storage.getString('sucursales_pendientes');
+    return res ? JSON.parse(res) : [];
+  }
+
+  removerSucursalPendiente(sucursalId: string): void {
+    const pendientes = this.obtenerSucursalesPendientes();
+    const filtradas = pendientes.filter((s: any) => s.id !== sucursalId);
+    this.storage.set('sucursales_pendientes', JSON.stringify(filtradas));
+  }
+
+  // --- COLA DE PRODUCTOS PENDIENTES ---
+  guardarProductoPendiente(producto: any): void {
+    const pendientes = this.obtenerProductosPendientes();
+    const index = pendientes.findIndex((p: any) => p.sku === producto.sku);
+    if (index !== -1) pendientes[index] = producto;
+    else pendientes.push(producto);
+    this.storage.set('productos_pendientes', JSON.stringify(pendientes));
+  }
+
+  obtenerProductosPendientes(): any[] {
+    const res = this.storage.getString('productos_pendientes');
+    return res ? JSON.parse(res) : [];
+  }
+
+  removerProductoPendiente(sku: string): void {
+    const pendientes = this.obtenerProductosPendientes();
+    const filtrados = pendientes.filter((p: any) => p.sku !== sku);
+    this.storage.set('productos_pendientes', JSON.stringify(filtrados));
+  }
   
   // Limpieza general (Logout)
   limpiarTodo(): void {

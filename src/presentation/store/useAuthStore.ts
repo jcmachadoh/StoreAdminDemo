@@ -15,7 +15,7 @@ interface AuthState {
   loginConHuella: () => Promise<void>;
   vincularHuella: (empleadoId: string, token: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  loginConPassword: (user: string, pass: string, tokenOpcional?: string) => Promise<{ exito: boolean; empleadoId?: string; token?: string } | { exito: boolean; requiereToken: boolean }>;
+  loginConPassword: (user: string, pass: string, tokenOpcional?: string) => Promise<{ exito: true; empleadoId: string; token: string } | { exito: false; requiereToken: boolean }>;
   verificarHardwareBiometrico: () => Promise<void>;
 }
 
@@ -58,11 +58,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isAuthenticated: true, token: resultado.token, isLoading: false });
       
       // DEVOLVEMOS EL ID PARA QUE LA UI PUEDA PREGUNTAR POR LA HUELLA
-      return { exito: true, empleadoId: resultado.empleadoId, token: resultado.token };
+      return { exito: true as const, empleadoId: resultado.empleadoId!, token: resultado.token! };
     } else {
       // Si devuelve NUEVO_DISPOSITIVO, la UI sabrá que debe mostrar el campo del Token
       set({ isAuthenticated: false, error: resultado.mensaje === 'NUEVO_DISPOSITIVO' ? null : resultado.mensaje, isLoading: false });
-      return { exito: false, requiereToken: resultado.mensaje === 'NUEVO_DISPOSITIVO' };
+      return { exito: false as const, requiereToken: resultado.mensaje === 'NUEVO_DISPOSITIVO' };
     }
   },
 

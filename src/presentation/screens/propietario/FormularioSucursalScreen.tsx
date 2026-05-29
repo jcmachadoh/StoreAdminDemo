@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { useUIStore } from '../../store/useUIStore';
 import { GuardarSucursalUseCase } from '../../../application/useCases/GuardarSucursalUseCase';
-import { FullScreenLoader } from '../../components/shared/FullScreenLoader';
+import { useAppTheme } from '../../hooks/useAppTheme';
+import {
+  ScreenLayout,
+  Header,
+  Button,
+  FullScreenLoader,
+} from '../../components/shared';
 
 export const FormularioSucursalScreen = ({ route, navigation }: any) => {
   const { showAlert } = useUIStore();
+  const { colors, spacing, radii } = useAppTheme();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Detectamos si venimos en MODO EDICIÓN
   const sucursalAEditar = route.params?.sucursal;
   const esEdicion = !!sucursalAEditar;
 
-  // Estados inicializados con datos previos si existen
   const [nombre, setNombre] = useState(sucursalAEditar?.nombre || '');
   const [direccion, setDireccion] = useState(sucursalAEditar?.direccion || '');
   const [lat, setLat] = useState(sucursalAEditar?.coordenadas?.lat?.toString() || '');
@@ -20,23 +25,21 @@ export const FormularioSucursalScreen = ({ route, navigation }: any) => {
 
   const handleGuardar = async () => {
     if (!nombre || !direccion) {
-      showAlert('warning', 'Datos incompletos', 'El nombre y la dirección son obligatorios.');
+      showAlert('warning', 'Datos incompletos', 'Nombre y dirección son obligatorios.');
       return;
     }
 
     setIsLoading(true);
     const useCase = new GuardarSucursalUseCase();
-    
     const payload = {
-      id: sucursalAEditar?.id, // Solo se usa en edición
+      id: sucursalAEditar?.id,
       nombre,
       direccion,
       coordenadas: {
         lat: parseFloat(lat) || 0,
         lng: parseFloat(lng) || 0,
-      }
+      },
     };
-
     const resultado = await useCase.ejecutar(payload, esEdicion);
     setIsLoading(false);
 
@@ -44,69 +47,166 @@ export const FormularioSucursalScreen = ({ route, navigation }: any) => {
       showAlert('success', esEdicion ? 'Actualizado' : '¡Inauguración!', resultado.mensaje);
       navigation.goBack();
     } else {
-      showAlert('error', 'Error Operativo', resultado.mensaje);
+      showAlert('error', 'Error', resultado.mensaje);
     }
   };
 
-  if (isLoading) return <FullScreenLoader mensaje={esEdicion ? "Guardando cambios en la nube..." : "Construyendo nueva sucursal..."} />;
+  if (isLoading) {
+    return (
+      <FullScreenLoader
+        mensaje={esEdicion ? 'Guardando cambios...' : 'Creando sucursal...'}
+      />
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>{'<'} Cancelar</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{esEdicion ? 'Editar Sucursal' : 'Inaugurar Sucursal'}</Text>
-        <View style={{ width: 80 }} />
-      </View>
+    <ScreenLayout>
+      <Header
+        title={esEdicion ? 'Editar Sucursal' : 'Inaugurar Sucursal'}
+        onBack={() => navigation.goBack()}
+        backLabel="Cancelar"
+        backColor="danger"
+      />
 
-      <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.formContainer, { padding: spacing.lg }]}
+        keyboardShouldPersistTaps="handled"
+      >
         {!esEdicion && (
-          <Text style={styles.headerDescription}>
-            Al crear una sucursal, el sistema automáticamente le generará un identificador único y una base de datos de inventario independiente.
-          </Text>
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: colors.primaryLight,
+                borderColor: colors.primary,
+                borderRadius: radii.sm,
+              },
+            ]}
+          >
+            <Text style={[styles.infoText, { color: colors.primary }]}>
+              Al crear una sucursal, el sistema generará un identificador único y una
+              base de datos de inventario independiente.
+            </Text>
+          </View>
         )}
 
-        <Text style={styles.label}>Nombre de la Tienda *</Text>
-        <TextInput style={styles.input} placeholder="Ej: Sucursal Habana Vieja" value={nombre} onChangeText={setNombre} />
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          Nombre de la Tienda *
+        </Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.surfaceInset,
+              borderColor: colors.border,
+              color: colors.text,
+              borderRadius: radii.sm,
+            },
+          ]}
+          placeholder="Ej: Sucursal Habana Vieja"
+          placeholderTextColor={colors.textMuted}
+          value={nombre}
+          onChangeText={setNombre}
+          accessibilityLabel="Nombre de la sucursal"
+        />
 
-        <Text style={styles.label}>Dirección Física *</Text>
-        <TextInput style={[styles.input, styles.textArea]} placeholder="Calle, Número, Municipio..." multiline numberOfLines={2} value={direccion} onChangeText={setDireccion} />
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          Dirección Física *
+        </Text>
+        <TextInput
+          style={[
+            styles.input,
+            styles.textArea,
+            {
+              backgroundColor: colors.surfaceInset,
+              borderColor: colors.border,
+              color: colors.text,
+              borderRadius: radii.sm,
+            },
+          ]}
+          placeholder="Calle, Número, Municipio..."
+          placeholderTextColor={colors.textMuted}
+          multiline
+          numberOfLines={2}
+          value={direccion}
+          onChangeText={setDireccion}
+          accessibilityLabel="Dirección de la sucursal"
+        />
 
-        <Text style={styles.sectionTitle}>Ubicación GPS (Opcional)</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Ubicación GPS (Opcional)
+        </Text>
         <View style={styles.row}>
           <View style={styles.halfCol}>
-            <Text style={styles.label}>Latitud</Text>
-            <TextInput style={styles.input} placeholder="23.1135" keyboardType="numeric" value={lat} onChangeText={setLat} />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Latitud</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.surfaceInset,
+                  borderColor: colors.border,
+                  color: colors.text,
+                  borderRadius: radii.sm,
+                },
+              ]}
+              placeholder="23.1135"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              value={lat}
+              onChangeText={setLat}
+              accessibilityLabel="Latitud"
+            />
           </View>
           <View style={styles.halfCol}>
-            <Text style={styles.label}>Longitud</Text>
-            <TextInput style={styles.input} placeholder="-82.3665" keyboardType="numeric" value={lng} onChangeText={setLng} />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Longitud</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.surfaceInset,
+                  borderColor: colors.border,
+                  color: colors.text,
+                  borderRadius: radii.sm,
+                },
+              ]}
+              placeholder="-82.3665"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              value={lng}
+              onChangeText={setLng}
+              accessibilityLabel="Longitud"
+            />
           </View>
         </View>
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleGuardar}>
-          <Text style={styles.saveBtnText}>{esEdicion ? 'Actualizar Datos' : 'Crear Sucursal'}</Text>
-        </TouchableOpacity>
+        <Button
+          title={esEdicion ? 'Actualizar Datos' : 'Crear Sucursal'}
+          onPress={handleGuardar}
+          variant="primary"
+          style={{ marginTop: spacing.xxxl }}
+          accessibilityLabel="Guardar sucursal"
+        />
       </ScrollView>
-    </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  backBtn: { padding: 5 },
-  backBtnText: { color: '#d9534f', fontSize: 16, fontWeight: '600' },
-  formContainer: { padding: 20 },
-  headerDescription: { fontSize: 14, color: '#666', marginBottom: 20, lineHeight: 20, backgroundColor: '#eef3f9', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#d0dfef' },
-  label: { fontSize: 14, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 15 },
-  input: { backgroundColor: '#f8f9fa', borderWidth: 1, borderColor: '#e1e4e8', borderRadius: 8, padding: 15, fontSize: 16, color: '#333' },
+  formContainer: { paddingBottom: 40 },
+  infoBox: { padding: 14, borderWidth: 1, marginBottom: 20 },
+  infoText: { fontSize: 14, lineHeight: 20 },
+  label: { fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 14 },
+  input: { borderWidth: 1, padding: 14, fontSize: 16 },
   textArea: { height: 70, textAlignVertical: 'top' },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginTop: 25, marginBottom: 5, borderBottomWidth: 1, borderColor: '#eee', paddingBottom: 5 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 24,
+    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+    paddingBottom: 4,
+  },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   halfCol: { width: '48%' },
-  saveBtn: { backgroundColor: '#0366d6', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 40 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });

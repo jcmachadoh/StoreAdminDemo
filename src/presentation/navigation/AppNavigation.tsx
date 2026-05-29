@@ -15,6 +15,7 @@ import { FormularioEmpleadoScreen } from '../screens/propietario/FormularioEmple
 import { ListaEmpleadosScreen } from '../screens/propietario/ListaEmpleadosScreen';
 import { PosScreen } from '../screens/empleado/PosScreen';
 import { HistorialVentasScreen } from '../screens/shared/HistorialVentasScreen';
+import { AjustesScreen } from '../screens/shared/AjustesScreen';
 import { MiSucursalScreen } from '../screens/sucursal/MiSucursalScreen';
 import { ReporteGlobalScreen } from '../screens/propietario/ReporteGlobalScreen';
 
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   HistorialVentasScreen: undefined;
   MiSucursalScreen: undefined;
   ReporteGlobalScreen: undefined;
+  AjustesScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -65,6 +67,7 @@ export const AppNavigation = () => {
           <Stack.Screen name="HistorialVentasScreen" component={HistorialVentasScreen} />
           <Stack.Screen name="MiSucursalScreen" component={MiSucursalScreen} />
           <Stack.Screen name="ReporteGlobalScreen" component={ReporteGlobalScreen} />
+          <Stack.Screen name="AjustesScreen" component={AjustesScreen} />
         </>
       )}
     </Stack.Navigator>
